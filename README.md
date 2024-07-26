@@ -13,6 +13,6 @@ To use the Nextflow v1 scripts in this repository you need an older version of n
 ```
 NXF_VER=22.10.4 nextflow run em-seq.nf --genome em-seq_ref_files/T2T_chm13v2.0+bs_controls.fa --flowcell AAC27FDF --fastq_glob '*_R{1,2}.fastq*' -resume
 ```
-We hope to upgrade to the NextFlow v2 syntax in the future.
 
-You may also be interested in the [nf-core methylseq project](https://nf-co.re/methylseq/2.5.0)
+
+Here is a modification and updated version so that it can be used in the mouse genome and DSL2 platform.
