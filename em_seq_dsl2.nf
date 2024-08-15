@@ -538,7 +538,7 @@ process mergeAndMarkDuplicates {
     }
 
     process combine_mbias_tsv {
-        publishDir "${outputPath}", mode: 'copy', pattern: 'combined*'
+        publishDir "${outputPath}", mode: 'copy', pattern: '*combined*'
 
         input:
             val(library)
@@ -559,7 +559,7 @@ process mergeAndMarkDuplicates {
     }
 
     process combine_mbias_svg {
-        publishDir "${outputPath}", mode: 'copy', pattern: 'combined*'
+        publishDir "${outputPath}", mode: 'copy', pattern: '*combined*'
         conda 'cairosvg=2.4.2 ghostscript=9.22'
 
         input:
