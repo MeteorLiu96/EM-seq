@@ -20,10 +20,32 @@ Channel.fromFilePairs(fastq_glob)
 
 
 workflow{
-   
+    prepare_genome_bwameth(genome)
+    
     mapping()
     
 }
+
+
+process prepare_genome_bwameth{
+
+    tag "Build Ref Genome Index"
+    conda "bwameth=0.2.2"
+    
+    input:
+        path genome
+    output:
+        path "${genome}.bwameth.c2t.sa"
+    when:
+        !file("${genome}.bwameth.c2t.sa").exists()
+        
+    shell:
+    '''
+        bwameth.py index !{genome}
+
+    '''
+}    
+
     
 process mapping {
     cpus {threads}
@@ -491,30 +513,3 @@ process mergeAndMarkDuplicates {
         '''
     }
 
-!{fastqc_files},!{samtools_flagstats_files},!{samtools_idxstat_files}, \
-            !{samtools_stats_files}, !{picard_stats_files}, !{picard_gc_stats_files}, \
-            !{goleft_ped_files}, !{goleft_roc_files}, !{samblaster_files}, !{fastp_files} \
-            
-            
-            
-                    multiqc(runFastQC.out.fastqc_results.flatten().toList()
-                ,samtools_flagstats.out.flagstats.flatten().toList()
-                ,samtools_flagstats.out.idxstats.flatten().toList()
-                ,samtools_stats.out.samstats.flatten().toList()
-                ,picard_stats.out.picard_stats.flatten().toList()
-                ,picard_gc_bias.out.picard_gc_stats.flatten().toList()
-                ,goleft.out.goleft_ped.flatten().toList()
-                ,goleft.out.goleft_roc.flatten().toList()
-                ,mergeAndMarkDuplicates.out.samblaster_logs.flatten().toList()
-                ,mapping.out.fastp_log_files.flatten().toList()
-                )
-                
-                
-                
-                        mkdir !{sampleID}
-        cp !{fastqc_files},!{samtools_flagstats_files},!{samtools_idxstat_files}, \
-            !{samtools_stats_files}, !{picard_stats_files}, !{picard_gc_stats_files}, \
-            !{goleft_ped_files}, !{goleft_roc_files}, !{samblaster_files}, !{fastp_files} \
-            !{sampleID}/
-
-        multiqc -ip  !{sampleID}/. -n !{library}_multiqc_report.html
