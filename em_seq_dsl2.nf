@@ -538,7 +538,7 @@ process mergeAndMarkDuplicates {
     }
 
     process combine_mbias_tsv {
-        publishDir "${outputPath}", mode: 'copy', pattern: 'combined*'
+        publishDir "${outputPath}", mode: 'copy', pattern: '*combined*'
 
         input:
             val(library)
@@ -552,14 +552,14 @@ process mergeAndMarkDuplicates {
             echo -ne 'flowcell\tlibrary\t' > !{library}_combined-mbias.tsv
             ls *_mbias.tsv | head -n 1 | xargs head -n 1 >> !{library}_combined-mbias.tsv
             for f in *_mbias.tsv; do 
-                filebase=`basename "${f}" _combined_mbias.tsv`
-                paste <( yes "!{flowcell}	${filebase}" | head -n `nl "$f" | tail -n 1 | cut -f 1` ) "$f" | tail -n +2  >> !{library}_combined-mbias.tsv
+                filebase=`basename "${f}" !{library}_combined_mbias.tsv`
+                paste <( yes "!{flowcell}	!{library}" | head -n `nl "$f" | tail -n 1 | cut -f 1` ) "$f" | tail -n +2  >> !{library}_combined-mbias.tsv
             done
         '''
     }
 
     process combine_mbias_svg {
-        publishDir "${outputPath}", mode: 'copy', pattern: 'combined*'
+        publishDir "${outputPath}", mode: 'copy', pattern: '*combined*'
         conda 'cairosvg=2.4.2 ghostscript=9.22'
 
         input:
