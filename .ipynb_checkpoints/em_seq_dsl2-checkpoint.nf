@@ -31,10 +31,8 @@ workflow {
     methylDackel_mbias(md_bams)
     methylDackel_extract(md_bams)
     
-    combine_mbias_tsv(sampleID,
-                      methylDackel_mbias.out.mbias_output_tsv)
-    combine_mbias_svg(sampleID,
-                      methylDackel_mbias.out.mbias_output_svg)
+    combine_mbias_tsv(methylDackel_mbias.out.mbias_output_tsv)
+    combine_mbias_svg(methylDackel_mbias.out.mbias_output_svg)
                       
     if(qc_report){
         runFastQC(md_bams)
@@ -57,19 +55,19 @@ workflow {
             select_mouse_reads(md_bams)
             mouse_insert_size(select_mouse_reads.out)
         }
-
-        multiqc(sampleID
-                ,runFastQC.out.fastqc_results
-                ,samtools_flagstats.out.flagstats
-                ,samtools_flagstats.out.idxstats
-                ,samtools_stats.out.samstats
-                ,picard_stats.out.picard_stats
-                ,picard_gc_bias.out.picard_gc_stats
-                ,goleft.out.goleft_ped
-                ,goleft.out.goleft_roc
-                ,mergeAndMarkDuplicates.out.samblaster_logs
-                ,mapping.out.fastp_log_files
-                )
+        
+        qc_files = sampleID
+                    .join(runFastQC.out.fastqc_results)
+                    .join(samtools_flagstats.out.flagstats)
+                    .join(samtools_flagstats.out.idxstats)
+                    .join(samtools_stats.out.samstats)
+                    .join(picard_stats.out.picard_stats)
+                    .join(picard_gc_bias.out.picard_gc_stats)
+                    .join(goleft.out.goleft_ped)
+                    .join(goleft.out.goleft_roc)
+                    .join(mergeAndMarkDuplicates.out.samblaster_logs)
+                    .join(mapping.out.fastp_log_files)
+        multiqc(qc_files)                         
     }     
 }
 
@@ -129,7 +127,7 @@ process mergeAndMarkDuplicates {
 
     output:
         tuple val(library), path('*.md.bam'), path('*.md.bam.bai'), emit: md_bams
-        path('*.samblaster'), emit: samblaster_logs
+        tuple val(library), path('*.samblaster'), emit: samblaster_logs
 
     shell:
     '''
@@ -153,8 +151,8 @@ process mergeAndMarkDuplicates {
             tuple val(library), path(md_file), path(md_bai)
 
         output:
-            path('*.svg'), emit: mbias_output_svg
-            path('*.tsv'), emit: mbias_output_tsv
+            tuple val(library), path('*.svg'), emit: mbias_output_svg
+            tuple val(library), path('*.tsv'), emit: mbias_output_tsv
 
         shell:
         '''
@@ -226,7 +224,7 @@ process mergeAndMarkDuplicates {
             tuple val(library), file(md_file), file(md_bai)
 
         output:
-            path('*_fastqc.zip'), emit: fastqc_results
+            tuple val(library), path('*_fastqc.zip'), emit: fastqc_results
 
         shell:
         '''
@@ -284,8 +282,8 @@ process mergeAndMarkDuplicates {
             tuple val(library), path(md_file), path(md_bai)
 
         output:
-            path('*.flagstat'), emit: flagstats
-            path('*.idxstat'), emit: idxstats
+            tuple val(library), path('*.flagstat'), emit: flagstats
+            tuple val(library), path('*.idxstat'), emit: idxstats
             
 
         shell:
@@ -306,7 +304,7 @@ process mergeAndMarkDuplicates {
 
         output:
 
-            path('*.samstat'), emit: samstats
+            tuple val(library), path('*.samstat'), emit: samstats
 
         shell:
         '''
@@ -324,7 +322,7 @@ process mergeAndMarkDuplicates {
             tuple val(library), path(md_file), path(md_bai)
 
         output:
-            path('*gc_metrics'), emit: picard_gc_stats
+            tuple val(library), path('*gc_metrics'), emit: picard_gc_stats
 
         shell:
         '''
@@ -343,7 +341,7 @@ process mergeAndMarkDuplicates {
             tuple val(library), path(md_file), path(md_bai)
 
         output:
-            path('*_metrics'), emit: picard_stats
+            tuple val(library), path('*_metrics'), emit: picard_stats
 
         shell:
         '''
@@ -359,8 +357,8 @@ process mergeAndMarkDuplicates {
             tuple val(library), path(md_file), path(md_bai)
 
         output:
-            path("${library}/*-indexcov.ped"), emit: goleft_ped
-            path("${library}/*-indexcov.roc"), emit: goleft_roc
+            tuple val(library), path("${library}/*-indexcov.ped"), emit: goleft_ped
+            tuple val(library), path("${library}/*-indexcov.roc"), emit: goleft_roc
 
         shell:
         '''
@@ -476,18 +474,7 @@ process mergeAndMarkDuplicates {
         conda "multiqc=1.17"
         
         input:
-            val(sampleID)
-            path(fastqc_files)
-            path(samtools_flagstats_files)
-            path(samtools_idxstat_files)
-            path(samtools_stats_files)
-            path(picard_stats_files)
-            path(picard_gc_stats_files)
-            path(goleft_ped_files)
-            path(goleft_roc_files)
-            path(samblaster_files)
-            tuple val(library), path(fastp_files)
-
+            tuple val(library), path("*")
         output:
             path("${library}_multiqc_report.html")
 
@@ -541,11 +528,10 @@ process mergeAndMarkDuplicates {
         publishDir "${outputPath}", mode: 'copy', pattern: '*combined*'
 
         input:
-            val(library)
-            path('*_mbias.tsv')
+            tuple val(library), path('*_mbias.tsv')
 
         output:
-            path("${library}_combined-mbias.tsv")
+            path("*_combined-mbias.tsv")
 
         shell:
         '''
@@ -563,11 +549,10 @@ process mergeAndMarkDuplicates {
         conda 'cairosvg=2.4.2 ghostscript=9.22'
 
         input:
-            val(library)
-            path('*.svg')
+            tuple val(library), path('*.svg')
 
         output:
-            path("${library}_combined-mbias.pdf")
+            path("*_combined-mbias.pdf")
 
         shell:
         '''
