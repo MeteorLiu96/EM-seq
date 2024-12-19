@@ -19,7 +19,7 @@ species = params.species ?:'human'
 qc_report = params.qc ?:true
 
 workflow {
-    fq_set_channel = Channel.fromFilePairs(fastq_glob, checkIfExists:true).view()
+    fq_set_channel = Channel.fromFilePairs(fastq_glob, checkIfExists:true)
     
 
     mapping(fq_set_channel)
@@ -67,6 +67,7 @@ workflow {
                     .join(goleft.out.goleft_roc)
                     .join(mergeAndMarkDuplicates.out.samblaster_logs)
                     .join(mapping.out.fastp_log_files)
+                    
         multiqc(qc_files)                         
     }     
 }
@@ -465,8 +466,7 @@ process mergeAndMarkDuplicates {
         picard -Xmx16g CollectInsertSizeMetrics VALIDATION_STRINGENCY=LENIENT  I=!{md_file} O=!{md_file}.insertsize_metrics MINIMUM_PCT=0.0001 HISTOGRAM_FILE=/dev/null
         '''
     }
-    
-    
+
     process multiqc {
         cpus {threads}
         publishDir "${outputPath}", mode: 'copy'
@@ -474,7 +474,11 @@ process mergeAndMarkDuplicates {
         conda "multiqc=1.17"
         
         input:
-            tuple val(library), path("*")
+            tuple val(library), 
+                  path(fastqc_results), path(flagstats), path(idxstats),
+                  path(samstats), path(picard_stats), path(picard_gc_stats), 
+                  path(goleft_ped), path(goleft_roc), path(samblaster_logs),
+                  path(fastp_log_files)
         output:
             path("${library}_multiqc_report.html")
 
